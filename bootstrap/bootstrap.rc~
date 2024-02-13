@@ -1,9 +1,0 @@
-source <(/opt/homebrew/bin/brew shellenv)
-
-function emacs() {
-  /opt/homebrew/opt/emacs/bin/emacs "${@}"
-}
-
-function bash() {
-  /opt/homebrew/bin/bash "${@}"
-}
