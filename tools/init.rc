@@ -1,0 +1,4 @@
+[[ "${__MACABOARD_RC__:-no}" == "yes" ]] && return 0
+__MACABOARD_RC__=yes
+
+source <(/opt/homebrew/bin/brew shellenv)

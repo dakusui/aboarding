@@ -1,0 +1,9 @@
+#!/opt/homebrew/bin/bash -eu
+set -E -o nounset -o errexit +o posix -o pipefail
+shopt -s inherit_errexit
+
+readonly __BASEDIR__=$(dirname "$(readlink --canonicalize "${0}")")
+source "${__BASEDIR__}/init.rc"
+
+
+

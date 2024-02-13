@@ -1,0 +1,10 @@
+== `bootstrap` directory
+
+Under this directory, installation steps for "bootstrap" tools are defined.
+Tools installed during this step will be used for installation of the other tools, which happens after "bootstrap" step.
+
+Followings tools are installed in this step.:
+
+- brew
+- jq
+- (modern) bash
