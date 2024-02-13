@@ -1,21 +1,26 @@
 #!/bin/bash -eu
 
+readonly _LOCKFILE="$HOME/.macaboard/.bootstrap-installation-ongoing"
 
 function install() {
   local _i
+  mkdir "$(dirname "${_LOCKFILE}")"
+  touch "${_LOCKFILE}"
   for _i in "homebrew" "emacs" "bash" "jq"; do
       message ">${_i}"
       install_bootstrap_tool "${_i}"
   done
+  rm "${_LOCKFILE}"
 }
 
 function configure() {
-  configure_git
+  :
 }
 
 function uninstall() {
+  local _lockfile="${_LOCKFILE}"
+  [[ -f "${_lockfile}" ]] && error "Perhaps bootstrap installation was not successful. Remove '${_lockfile}' and retry."
   uninstall_homebrew
-  unconfigure_git    
 }
 
 function install_homebrew() {
@@ -23,10 +28,12 @@ function install_homebrew() {
 }
 
 function uninstall_homebrew() {
-  yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh)" || error "Failed to install homebrew. Check the log and stderr."
+  yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh)" || error "Failed to uninstall homebrew. Check the log and stderr."
 }
 
-# Generally speaking emacs shouldn't be a part of bootstrap. But I'm so bad at playing with vi... Allow me to include it here.
+###
+# Generally speaking emacs shouldn't be a part of bootstrap. But I'm so bad at playing with vi.
+# Allow me to include it here.
 function install_emacs() {
   run_brew install emacs   
 }
@@ -36,22 +43,13 @@ function install_bash() {
 }    
 
 function install_jq() {
-  run_brew install emacs   
+  run_brew install jq
 }    
 
 function install_bootstrap_tool() {
   message "Installing '${1}':"
   install_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
   message "'${1}' installed."
-}
-
-function configure_git() {
-  git config --global user.email "$(whoami)@gmail.com"
-  git config --global user.name "$(my_name)"
-}
-
-function unconfigure_git() {
-  rm -fr ~/.git || message "~/.git not found."
 }
 
 function message() {
@@ -63,18 +61,8 @@ function error() {
   exit 1
 }
 
-function my_name() {
-  for i in $(whoami | macsed -E 's/\./ /'); do echo -n "${i^} "; done | macsed -E 's/ +$//'
-}
-
 function run_brew() {
   /opt/homebrew/bin/brew "${@}"
-}
-
-
-function macsed() {
-  # Use macOS default sed explicitly.
-  /usr/bin/sed "${@}"    
 }
 
 function main() {
@@ -84,11 +72,11 @@ function main() {
   fi
   for _i in "${@}"; do
     if [[ "${_i}" == "install" ]]; then
-      install "${@}"
+      install
     elif [[ "${_i}" == "configure" ]]; then
-      configure "${@}"
+      configure
     elif [[ "${_i}" == "uninstall" ]]; then
-      uninstall "${@}"
+      uninstall
     else
       error "Unknown subcommand '${_i}' was given."
     fi

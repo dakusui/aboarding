@@ -5,19 +5,19 @@ shopt -s inherit_errexit
 readonly __THIS_DIR__="$(dirname "${0}")"
 source "${__THIS_DIR__}/init.rc"
 
-function macsed() {
-  # Use macOS default sed explicitly.
-  /usr/bin/sed "${@}"    
-}
-
 function list_tool_definition_directories() {
-  local _dir="${1}";
+  local _dir="${1}" _i;
   for _i in $(ls "${_dir}"); do
-    if [[ ! -d "${_i}" && ! "${_i}" =~ /[0-9]+_.+/ ]]; then
+    _i="${_dir}/${_i}"
+    if [[ ! -d "${_i}" ]]; then
+      continue;
+    fi
+    #                      "[0-9]+_.+"
+    if [[ ! "${_i##*/}" =~ [0-9]+_.+ ]]; then
       continue;
     fi
     echo "${_i}"
-  done | sort
+  done
 }
 
 function tool_name_of() {
@@ -25,34 +25,71 @@ function tool_name_of() {
   echo "${_dirname##*/}" | macsed -E "s/^[0-9]+_//"
 }    
 
-function resolve_installer() {
-  local _dirname="${1}"    
-  if [[ -f "${_dirname}/install.sh" ]]; then
-    echo "bash ${_dirname}/install.sh"
+function resolve_operation() {
+  local _op="${1}" _dirname="${2}"
+  if [[ -f "${_dirname}/${_op}.sh" ]]; then
+    echo "bash -eu ${_dirname}/${_op}.sh"
   else
-    echo "brew_install"
+    echo "fallback_${_op}" "$(tool_name_of "${_dirname}")"
   fi      
-}    
-
-function install_tool() {
-  local _dirname="${1}"
-  local _installer
-  _installer="$(resolve_installer "${_dirname}")"
-  echo "${_installer}"
 }
 
-function brew_install() {
+function fallback_install() {
   brew install "${1}"
 }
 
-function main() {
+function fallback_uninstall() {
+  :
+}
+
+function fallback_caveats() {
+  brew info --json=v2 "${1}"
+}
+
+function fallback_configure() {
+  :
+}
+
+function fallback_unconfigure() {
+  :
+}
+   
+function install_tool() {
+  local _dirname="${1}"
+  $(resolve_operation install "${_dirname}")
+}
+
+function install_tools() {
   local _i
-  for _i in $(list_tool_definition_directories "${__THIS_DIR__}"); do
-    echo ">>${_i}"
+  for _i in $(list_tool_definition_directories "${__THIS_DIR__}" | sort); do
     install_tool "${_i}"
   done      
 }
 
+function uninstall_tool() {
+  local _dirname="${1}"
+  "$(resolve_operation uninstall "${_dirname}")"
+}
+
+function uninstall_tools() {
+  local _i
+  for _i in $(list_tool_definition_directories "${__THIS_DIR__}" | sort -r); do
+    uninstall_tool "${_i}"
+  done      
+}
+
+function main() {
+  local _i
+  for _i in "${@}"; do
+    if [[ "${_i}" == install ]]; then
+      install_tools
+    elif [[ "${_i}" == uninstall ]]; then
+      uninstall_tools
+    else
+      error "Unknown subcommand '${_i}' was given."
+    fi
+  done
+}
 main "${@}"
 
 
