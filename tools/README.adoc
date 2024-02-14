@@ -1,24 +1,15 @@
-== `tools` directory
+== `bootstrap` directory
 
-[%nowrap]
-----
-./
-  README.adoc        ... this file.
-  {##_tool_name}/    
-    install.sh       ... optional. defines installation step explicitly.
-    uninstall.sh     ... optional. defines uninstallation step explicitly.
-    caveats.sh       ... optional. defines caveats resolution step explicitly.
-    out/
-      stdout         ... standard output of installation step.
-      stderr         ... standard error of installation step.
-      caveats.json   ... output of caveats resolution step.
-----
+Under this directory, installation steps for "bootstrap" tools are defined.
+Tools installed during this step will be used for installation of the other tools, which happens after "bootstrap" step.
 
-=== Installation Step and Uninstallation Step.
+Followings tools are installed in this step.:
 
-If `install.sh` is absent `brew install {tool_name}` will be executed as installation step.
-Similarly, `uninstall.sh` is absent, `brew uninstall {tool_name}` will be executed when uninstallation is requested.
-   
+- brew
+- jq
+- (modern) bash
+- emacs
 
-=== Caveats 
-if absent `brew info {tool_name} --json=v2` will be executed as caveats resolution step.
+Generally speaking, including a tool like emacs isn't a good idea in bootstrap, but the author of `macaboard` is very bad at playing with `vi`.
+In future versions, perhaps, it will be replaced with `nano` or just removed (if he learns a way to live with `vi` ;)).
+
