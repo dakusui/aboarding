@@ -15,10 +15,10 @@ function onboard() {
 function offboard() {
   # Uninstall packages
   source <(/opt/homebrew/bin/brew shellenv)  
+  /opt/homebrew/bin/bash -eu tools/configurator.sh private:unconfigure team:unconfigure org:unconfigure base:unconfigure
   /opt/homebrew/bin/bash -eu tools/install-packages.sh private:uninstall
   # Uninstall bootstrap level tools
   /bin/bash -eu tools/bootstrap.sh uninstall
-  /opt/homebrew/bin/bash -eu tools/configurator.sh private:unconfigure team:unconfigure org:unconfigure base:unconfigure
 }
 
 function main() {

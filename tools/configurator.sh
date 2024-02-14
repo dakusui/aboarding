@@ -16,29 +16,30 @@ function compose_destination_filename() {
 }
 
 function perform_profile_operation() {
+  local _op="${1}" _home="${2}" _profile="${3}" _script="${4}"
+  local _target_file
+  _target_file="$(compose_destination_filename "${_home}" "${_profile}" "$(dirname "${_script}")")"
+  message "Processing: [${_op}]: ${_script}"
+  mkdir -p "$(dirname "${_target_file}")"
+  modern_bash -eu "${_script}" "${_profile}" "${_target_file}"
+  message "Processed : [${_op}]: ${_script}"
+}
+
+function perform_profile_operations() {
   local _op="${1}" _home="${2}" _profile="${3}" _profiles_base="${4}"
   local _profile_dir="${_profiles_base}/${_profile}"
   local _i _configs
-  mapfile -t _configs < <(find "${_profile_dir}" -name "${op}.sh" -type f | sort)
+  mapfile -t _configs < <(find "${_profile_dir}" -name "${_op}.sh" -type f | sort)
   for _i in "${_configs[@]}"; do
-    local _target_file
-    _target_file="$(compose_destination_filename "${_home}" "${_profile}" "$(dirname "${_i}")")"
-    mkdir -p "$(dirname "${_target_file}")"
-    modern_bash -eu "${_i}" "${_profile}" "${_target_file}"
+    perform_profile_operation "${_op}" "${_home}" "${_profile}" "${_i}"
   done
 }    
-
-function configure_profile() {
-  local _home="${1}" _profile="${2}" _profiles_base="${3}"
-  perform_profile_operation "configure" "${_home}" "${_profile}" "${_profile_base}"}
-}
-
 
 function main() {
   for _i in "${@}"; do
     local _profile="${_i%%:*}"
     local _op="${_i#*:}"
-    perform_profile_operation "${_op}" "${HOME}" "${_profile}" "${__PROFILES_BASE__}"
+    perform_profile_operations "${_op}" "${HOME}" "${_profile}" "${__PROFILES_BASE__}"
   done
 }
 

@@ -34,15 +34,19 @@ function install() {
 function uninstall() {
   local _lockfile="${_LOCKFILE}"
   check_lockfile
-  uninstall_homebrew 2>&1 | cat -n >&2 || error "Failed to install 'homebrew'. Check the log and stderr.'"
+  for _i in "homebrew"; do
+      uninstall_bootstrap_tool "${_i}"
+  done
 }
 
 function install_homebrew() {
   yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || error "Failed to install homebrew. Check your internet connection."
+  return $?  
 }
 
 function uninstall_homebrew() {
   yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh)" || error "Failed to uninstall homebrew. Check the log and stderr."
+  return $?  
 }
 
 ###
@@ -64,6 +68,12 @@ function install_bootstrap_tool() {
   message "Installing '${1}':"
   install_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
   message "'${1}' installed."
+}
+
+function uninstall_bootstrap_tool() {
+  message "Uninstalling '${1}':"
+  uninstall_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
+  message "'${1}' uninstalled."
 }
 
 function message() {
