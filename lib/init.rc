@@ -16,12 +16,15 @@ function macsed() {
   # Use macOS default sed explicitly.
   /usr/bin/sed "$@"    
 }
+export -f macsed
 
 function message() {
   echo "$@" >&2
 }
+export -f message
 
 function error() {
   message "$@"
   exit 1
 }
+export -f error
