@@ -1,2 +1,0 @@
-brew uninstall intellij-idea
-

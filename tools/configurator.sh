@@ -21,7 +21,7 @@ function perform_profile_operation() {
   _target_file="$(compose_destination_filename "${_home}" "${_profile}" "$(dirname "${_script}")")"
   message "Processing: [${_op}]: ${_script}"
   mkdir -p "$(dirname "${_target_file}")"
-  modern_bash -eu "${_script}" "${_profile}" "${_target_file}"
+  modern_bash -eu "${_script}" "${_profile}" "${_target_file}" 2>&1 | cat -n
   message "Processed : [${_op}]: ${_script}"
 }
 

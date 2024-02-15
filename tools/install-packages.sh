@@ -29,7 +29,7 @@ function package_name_of() {
 function resolve_operation() {
   local _op="${1}" _dirname="${2}"
   if [[ -f "${_dirname}/${_op}.sh" ]]; then
-    echo "bash -eu ${_dirname}/${_op}.sh"
+    echo "bash -eu ${_dirname}/${_op}.sh" "$(package_name_of "${_dirname}")"
   else
     echo "fallback_${_op}" "$(package_name_of "${_dirname}")"
   fi      
@@ -57,8 +57,8 @@ function fallback_unconfigure() {
 
 function perform_operation() {
   local _operation="${1}" _dirname="${2}"
-  message "Processing: [${_operation}]: '${_dirname}'"  
-  $(resolve_operation "${1}" "${_dirname}") | cat -n >&2 || error "FAILED[${_operation}]: '${_dirname}'"
+  message "Processing: [${_operation}]: '${_dirname}'"
+  $(resolve_operation "${1}" "${_dirname}") 2>&1 | cat -n >&2 || error "FAILED[${_operation}]: '${_dirname}'"
   message "Processed:  [${_operation}]: '${_dirname}'"
 }
 
