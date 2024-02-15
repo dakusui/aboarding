@@ -1,0 +1,2 @@
+brew uninstall "${1}"
+
