@@ -27,7 +27,7 @@ function onboard() {
   local _workdir="${1}" _profiles_dir="${2}"
 
   install_bootstraps "${_workdir}"
-  install_packages "${_workdir}"
+  install_packages "${_workdir}" "${_profiles_dir}"
 }
 
 function uninstall_packages() {
