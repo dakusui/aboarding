@@ -81,10 +81,16 @@ function uninstall_packages() {
 
 function main() {
   local _i
+  local _profiles_dir
+  _profiles_dir="$(pwd)/profiles"
   for _i in "${@}"; do
     local _profile="${_i%%:*}"
     local _op="${_i#*:}"
-    local _packages_dir="$(dirname "${__THIS_DIR__}")/profiles/${_profile}/packages"
+    if [[ "${_profile}" == profiles ]]; then
+      _profiles_dir="${_op}"
+      continue
+    fi
+    local _packages_dir="${_profiles_dir}/${_profile}/packages"
     if [[ "${_op}" == install ]]; then
       install_packages "${_packages_dir}"
     elif [[ "${_op}" == uninstall ]]; then

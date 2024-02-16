@@ -36,12 +36,17 @@ function perform_profile_operations() {
 }    
 
 function main() {
+  local _profiles_dir="${__PROFILES_DIR__}"
   for _i in "${@}"; do
     local _profile="${_i%%:*}"
     local _op="${_i#*:}"
-    perform_profile_operations "${_op}" "${HOME}" "${_profile}" "${__PROFILES_BASE__}"
+    if [[ "${_profile}" == profiles ]]; then
+      _profiles_dir="${_op}"
+      continue
+    fi
+    perform_profile_operations "${_op}" "${HOME}" "${_profile}" "${_profiles_dir}"
   done
 }
 
-readonly __PROFILES_BASE__="$(dirname "$(dirname "${0}")")/profiles"
+readonly __PROFILES_DIR__="$(pwd)/profiles"
 main "${@}"
