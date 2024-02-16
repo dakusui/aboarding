@@ -17,11 +17,19 @@ function install_packages() {
   # Install packages
   source <(/opt/homebrew/bin/brew shellenv)  
   /opt/homebrew/bin/bash -eu "${_workdir}/tools/install-packages.sh" profiles:"${_profiles_dir}" \
-			                                             private:install
+			 private:install
+  configure_packages "${_workdir}" "${_profiles_dir}"
+}
+
+function configure_packages() {
+  local _workdir="${1}"
+  local _profiles_dir="${2}"    
+  source <(/opt/homebrew/bin/brew shellenv)  
   /opt/homebrew/bin/bash -eu "${_workdir}/tools/configurator.sh" profiles:"${_profiles_dir}" \
                                                                  base:configure org:configure \
                                                                  team:configure private:configure
 }
+
 
 function onboard() {
   local _workdir="${1}" _profiles_dir="${2}"
@@ -87,6 +95,8 @@ function main() {
       install_bootstraps "${_workdir}"
     elif [[ "${_i}" == install-packages ]]; then
       install_packages "${_workdir}" "${_profiles_dir}"
+    elif [[ "${_i}" == configure-packages ]]; then
+      configure_packages "${_workdir}" "${_profiles_dir}"
     elif [[ "${_i}" == uninstall-bootstraps ]]; then
       uninstall_bootstraps "${_workdir}"
     elif [[ "${_i}" == uninstall-packages ]]; then

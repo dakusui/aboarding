@@ -2,6 +2,8 @@
 __BASH_PRIVATE_RC__=yes
 
 . <(/opt/homebrew/bin/brew shellenv)
+
+PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
 PATH=~/bin:$PATH
 export PATH
 
