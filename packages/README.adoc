@@ -1,0 +1,3 @@
+== About this directory
+
+Place installers that should be shared inside your company under this directory.
