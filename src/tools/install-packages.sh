@@ -57,9 +57,9 @@ function fallback_unconfigure() {
 
 function perform_operation() {
   local _operation="${1}" _dirname="${2}"
-  message "Processing: [${_operation}]: '${_dirname}'"
-  $(resolve_operation "${1}" "${_dirname}") 2>&1 | cat -n >&2 || error "FAILED[${_operation}]: '${_dirname}'"
-  message "Processed:  [${_operation}]: '${_dirname}'"
+  begin "Install" "${_operation}" "$(basename "${_dirname}")"
+  $(resolve_operation "${1}" "${_dirname}") 2>&1 | cat -n >&2 || fail "Install" "${_operation}" "${_dirname}"
+  end   "Install" "${_operation}" "$(basename "${_dirname}")"
 }
 
 function install_packages() {

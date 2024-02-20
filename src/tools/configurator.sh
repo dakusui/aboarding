@@ -19,10 +19,12 @@ function perform_profile_operation() {
   local _op="${1}" _home="${2}" _profile="${3}" _script="${4}"
   local _target_file
   _target_file="$(compose_destination_filename "${_home}" "${_profile}" "$(dirname "${_script}")")"
-  message "Processing: [${_op}]: ${_script}"
+  begin "Install" "${_op}" "${_profile}[${_script}]"
   mkdir -p "$(dirname "${_target_file}")"
-  modern_bash -eu "${_script}" "${_profile}" "${_target_file}" 2>&1 | cat -n
-  message "Processed : [${_op}]: ${_script}"
+  modern_bash -eu "${_script}" "${_profile}" "${_target_file}" 2>&1 | \
+      cat -n || \
+      fail "Install" "${_op}" "${_profile}[${_script}]"
+  end "Install" "${_op}" "${_profile}[${_script}]"
 }
 
 function perform_profile_operations() {
@@ -36,15 +38,17 @@ function perform_profile_operations() {
 }    
 
 function main() {
-  local _profiles_dir="${__PROFILES_DIR__}"
+  local _profiles_dir
   for _i in "${@}"; do
-    local _profile="${_i%%:*}"
-    local _op="${_i#*:}"
-    if [[ "${_profile}" == profiles ]]; then
-      _profiles_dir="${_op}"
+    local  _op="${_i%%:*}" _target="${_i#*:}"
+    if [[ "${_op}" == profiles ]]; then
+      _profiles_dir="${_target}"
       continue
+    elif [[ "${_op}" == configure || "${_op}" == unconfigure  ]]; then
+      perform_profile_operations "${_op}" "${HOME}" "${_target}" "${_profiles_dir?profiles: was not set.}"
+    else
+      error "Unknown operation: [${_op}] was given."
     fi
-    perform_profile_operations "${_op}" "${HOME}" "${_profile}" "${_profiles_dir}"
   done
 }
 

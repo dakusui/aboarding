@@ -65,15 +65,16 @@ function install_jq() {
 }    
 
 function install_bootstrap_tool() {
+  begin "Bootstrap" "install" "${1}"
   message "Installing '${1}':"
-  install_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
-  message "'${1}' installed."
+  install_"${1}" 2>&1 | cat -n >&2 || fail "Bootstrap" "install" "${1}"
+  end "Bootstrap" "install" "${1}"
 }
 
 function uninstall_bootstrap_tool() {
-  message "Uninstalling '${1}':"
-  uninstall_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
-  message "'${1}' uninstalled."
+  begin "Bootstrap" "uninstall" "${1}"
+  uninstall_"${1}" 2>&1 | cat -n >&2 || fail "Bootstrap" "uninstall" "${1}"
+  end "Bootstrap" "uninstall" "${1}"
 }
 
 function message() {

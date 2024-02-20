@@ -23,6 +23,30 @@ function message() {
 }
 export -f message
 
+function _message() {
+  local _cat="${1}" _stage="${2}" _op="${3}" _target="${4}"
+  printf "%-5s: %-15s[%-15s]: %s\n" "${_cat}" "${_stage}" "${_op}" "${_target}"
+}
+
+function begin() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "BEGIN" "${_stage}" "${_op}" "${_target}"
+}
+export -f begin
+
+function end() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "END" "${_stage}" "${_op}" "${_target}"
+}
+export -f end
+
+function fail() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "FAIL" "${_stage}" "${_op}" "${_target}"
+  exit 1
+}
+export -f fail
+
 function error() {
   message "$@"
   exit 1

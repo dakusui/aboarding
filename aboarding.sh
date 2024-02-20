@@ -1,8 +1,19 @@
 #!/bin/bash -eu
 # Forcibly use a traditional bash for compatibility's sake.
+# Forcibly use a traditional bash for compatibility's sake.
+set -E -o nounset -o errexit +o posix -o pipefail
 
 function macos_default_shell() {
   dscl . -read ~/ UserShell | cut -f 2 -d ':' | sed -E 's/^[ \t]*(.+)[ \t]*$/\1/'
+}
+
+function macos_source_brew_shellenv() {
+  source <(/opt/homebrew/bin/brew shellenv)  
+}
+
+function macos_homebrew_bash() {
+  local _homebrew_bash="/opt/homebrew/bin/bash"
+  [[ -e "${_homebrew_bash}" ]] && "${_homebrew_bash}" "${@}" || message "homebrew bash doesn't exist. nothing to do."
 }
 
 function install_bootstraps() {
@@ -11,12 +22,48 @@ function install_bootstraps() {
   /bin/bash -eu "${_workdir}/tools/bootstrap.sh" install
 }
 
+function download_profile() {
+  local _workdir="${1}" _repo_url="${2}" _profile_name="${3}" _branch="${4}"
+  begin "download profiles" "clone" "profile:${_profile_name}[branch:${_branch} from repo:${_repo_url}]"
+  mkdir -p "${_workdir}/profiles"
+  git clone \
+      --single-branch --depth 1 \
+      --branch "${_branch}" \
+      "${_repo_url}"  \
+      "${_workdir}/profiles/${_profile_name}" 2>&1 | \
+      cat -n >&2 || \
+    fail "download profile" "clone" "profile:${_profile_name}[branch:${_branch} from repo:${_repo_url}]"
+  end "download profiles" "clone" "profile:${_profile_name}[branch:${_branch} from repo:${_repo_url}]"
+}
+
+function download_profiles() {
+  local _workdir _repo_url
+  local _i
+  for _i in "${@}"; do
+    local _directive="${_i%%:*}" _arg="${_i#*:}"
+    local _profile_name _branch  _repo_url _workdir
+    if [[ "${_directive}" == workdir ]]; then
+      _workdir="${_arg}"
+    elif [[ "${_directive}" == repo ]]; then
+      _repo_url="${_arg}"
+    elif [[ "${_directive}" == profile ]]; then
+      local _profile_name _branch
+      _profile_name="${_arg%%:*}"
+      _branch="${_arg#*:}"
+      download_profile "${_workdir?'workdir' is not set.}" \
+		       "${_repo_url?'repo' is not set}" \
+		       "${_profile_name}" \
+                       "${_branch}"
+    fi	
+  done  
+}
+
 function install_packages() {
   local _workdir="${1}"
   local _profiles_dir="${2}"    
   # Install packages
-  source <(/opt/homebrew/bin/brew shellenv)  
-  /opt/homebrew/bin/bash -eu "${_workdir}/tools/install-packages.sh" profiles:"${_profiles_dir}" \
+  macos_source_brew_shellenv
+  macos_homebrew_bash -eu "${_workdir}/tools/install-packages.sh" profiles:"${_profiles_dir}" \
 			 private:install
   configure_packages "${_workdir}" "${_profiles_dir}"
 }
@@ -24,17 +71,25 @@ function install_packages() {
 function configure_packages() {
   local _workdir="${1}"
   local _profiles_dir="${2}"    
-  source <(/opt/homebrew/bin/brew shellenv)  
-  /opt/homebrew/bin/bash -eu "${_workdir}/tools/configurator.sh" profiles:"${_profiles_dir}" \
-                                                                 base:configure org:configure \
-                                                                 team:configure private:configure
+  macos_source_brew_shellenv
+  macos_homebrew_bash -eu "${_workdir}/tools/configurator.sh" \
+			 profiles:"${_profiles_dir}" \
+                         configure:base \
+			 configure:org \
+                         configure:team \
+			 configure:private
 }
-
 
 function onboard() {
   local _workdir="${1}" _profiles_dir="${2}"
 
   install_bootstraps "${_workdir}"
+  download_profiles "workdir:${_workdir}" \
+                    "repo:https://github.com/dakusui/aboarding.git" \
+                    "profile:base:base-profile" \
+                    "profile:org:example-company" \
+                    "profile:team:example-team" \
+                    "profile:private:$(whoami)"
   install_packages "${_workdir}" "${_profiles_dir}"
 }
 
@@ -42,13 +97,20 @@ function uninstall_packages() {
   local _workdir="${1}"
   local _profiles_dir="${2}"    
   # Uninstall packages
-  source <(/opt/homebrew/bin/brew shellenv)  
-  /opt/homebrew/bin/bash -eu "${_workdir}/tools/configurator.sh" profiles:"${_profiles_dir}" \
-			 private:unconfigure \
-			 team:unconfigure \
-			 org:unconfigure \
-			 base:unconfigure
-  /opt/homebrew/bin/bash -eu "${_workdir}/tools/install-packages.sh" profiles:"${_profiles_dir}" \
+  macos_source_brew_shellenv
+  download_profiles "workdir:${_workdir}" \
+                    "repo:https://github.com/dakusui/aboarding.git" \
+                    "profile:base:base-profile" \
+                    "profile:org:example-company" \
+                    "profile:team:example-team" \
+                    "profile:private:$(whoami)"
+  macos_homebrew_bash -eu "${_workdir}/tools/configurator.sh" \
+			 profiles:"${_profiles_dir}" \
+			 unconfigure:private \
+			 unconfigure:team \
+			 unconfigure:org \
+			 unconfigure:base
+  macos_homebrew_bash -eu "${_workdir}/tools/install-packages.sh" profiles:"${_profiles_dir}" \
                          private:uninstall
 }
 
@@ -68,12 +130,20 @@ function uninstall_bootstraps() {
   ensure_homebrew_installed_shell_is_not_default
   # Uninstall bootstrap level tools
   /bin/bash -eu "${_workdir}/tools/bootstrap.sh" uninstall
-}    
+}
+
+function remove_local_profiles() {
+  local _workdir="${1}"
+  if [[ -e "${_workdir}/profiles" ]] ; then
+    rm -fr "${_workdir}/profiles"
+  fi
+}
 
 function offboard() {
   local _workdir="${1}" _profiles_dir="${2}"
   ensure_homebrew_installed_shell_is_not_default
   uninstall_packages "${_workdir}" "${_profiles_dir}"
+  remove_local_profiles "${_workdir}"
   uninstall_bootstraps "${_workdir}"
 }
 
@@ -85,7 +155,7 @@ function main() {
   if [[ "$#" == 0 ]]; then
     main "${_workdir}" onboard
   fi  
-  _profiles_dir="$(pwd)/profiles"
+  _profiles_dir="${_workdir}/profiles"
   for _i in $@; do
     if [[ "${_i}" == onboard ]]; then
       onboard "${_workdir}" "${_profiles_dir}"
@@ -101,6 +171,13 @@ function main() {
       uninstall_bootstraps "${_workdir}"
     elif [[ "${_i}" == uninstall-packages ]]; then
       uninstall_packages "${_workdir}" "${_profiles_dir}"
+    elif [[ "${_i}" == download-profiles ]]; then
+      download_profiles "workdir:${_workdir}" \
+                    "repo:https://github.com/dakusui/aboarding.git" \
+                    "profile:base:base-profile" \
+                    "profile:org:example-company" \
+                    "profile:team:example-team" \
+                    "profile:private:$(whoami)"
     else
       echo "Unknown subcommand: '${_i}' was given." >&2
       exit 1
@@ -138,6 +215,30 @@ function message() {
   echo "$@" >&2
 }
 export -f message
+
+function _message() {
+  local _cat="${1}" _stage="${2}" _op="${3}" _target="${4}"
+  printf "%-5s: %-15s[%-15s]: %s\n" "${_cat}" "${_stage}" "${_op}" "${_target}"
+}
+
+function begin() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "BEGIN" "${_stage}" "${_op}" "${_target}"
+}
+export -f begin
+
+function end() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "END" "${_stage}" "${_op}" "${_target}"
+}
+export -f end
+
+function fail() {
+  local _stage="${1}" _op="${2}" _target="${3}"
+  _message "FAIL" "${_stage}" "${_op}" "${_target}"
+  exit 1
+}
+export -f fail
 
 function error() {
   message "$@"
@@ -213,15 +314,16 @@ function install_jq() {
 }    
 
 function install_bootstrap_tool() {
+  begin "Bootstrap" "install" "${1}"
   message "Installing '${1}':"
-  install_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
-  message "'${1}' installed."
+  install_"${1}" 2>&1 | cat -n >&2 || fail "Bootstrap" "install" "${1}"
+  end "Bootstrap" "install" "${1}"
 }
 
 function uninstall_bootstrap_tool() {
-  message "Uninstalling '${1}':"
-  uninstall_"${1}" 2>&1 | cat -n >&2 || error "Failed to install '${1}. Check the log and stderr.'"
-  message "'${1}' uninstalled."
+  begin "Bootstrap" "uninstall" "${1}"
+  uninstall_"${1}" 2>&1 | cat -n >&2 || fail "Bootstrap" "uninstall" "${1}"
+  end "Bootstrap" "uninstall" "${1}"
 }
 
 function message() {
@@ -318,9 +420,9 @@ function fallback_unconfigure() {
 
 function perform_operation() {
   local _operation="${1}" _dirname="${2}"
-  message "Processing: [${_operation}]: '${_dirname}'"
-  $(resolve_operation "${1}" "${_dirname}") 2>&1 | cat -n >&2 || error "FAILED[${_operation}]: '${_dirname}'"
-  message "Processed:  [${_operation}]: '${_dirname}'"
+  begin "Install" "${_operation}" "$(basename "${_dirname}")"
+  $(resolve_operation "${1}" "${_dirname}") 2>&1 | cat -n >&2 || fail "Install" "${_operation}" "${_dirname}"
+  end   "Install" "${_operation}" "$(basename "${_dirname}")"
 }
 
 function install_packages() {
@@ -385,10 +487,13 @@ function perform_profile_operation() {
   local _op="${1}" _home="${2}" _profile="${3}" _script="${4}"
   local _target_file
   _target_file="$(compose_destination_filename "${_home}" "${_profile}" "$(dirname "${_script}")")"
+  begin "Install" "${_op}" "${_profile}[${_script}]"
   message "Processing: [${_op}]: ${_script}"
   mkdir -p "$(dirname "${_target_file}")"
-  modern_bash -eu "${_script}" "${_profile}" "${_target_file}" 2>&1 | cat -n
-  message "Processed : [${_op}]: ${_script}"
+  modern_bash -eu "${_script}" "${_profile}" "${_target_file}" 2>&1 | \
+      cat -n || \
+      fail "Install" "${_op}" "${_profile}[${_script}]"
+  end "Install" "${_op}" "${_profile}[${_script}]"
 }
 
 function perform_profile_operations() {
@@ -402,15 +507,17 @@ function perform_profile_operations() {
 }    
 
 function main() {
-  local _profiles_dir="${__PROFILES_DIR__}"
+  local _profiles_dir
   for _i in "${@}"; do
-    local _profile="${_i%%:*}"
-    local _op="${_i#*:}"
-    if [[ "${_profile}" == profiles ]]; then
-      _profiles_dir="${_op}"
+    local  _op="${_i%%:*}" _target="${_i#*:}"
+    if [[ "${_op}" == profiles ]]; then
+      _profiles_dir="${_target}"
       continue
+    elif [[ "${_op}" == configure || "${_op}" == unconfigure  ]]; then
+      perform_profile_operations "${_op}" "${HOME}" "${_target}" "${_profiles_dir?profiles: was not set.}"
+    else
+      error "Unknown operation: [${_op}] was given."
     fi
-    perform_profile_operations "${_op}" "${HOME}" "${_profile}" "${_profiles_dir}"
   done
 }
 
