@@ -1,0 +1,75 @@
+[ditaa]
+----
+    in
+   +----------+   +---------+
+   |          |   |         |
+   |          V   |         V
+/--+\      /------+--\    /---\
+| I |      |Installed|    |   |
+\---/      \--+------/    \---/
+   ^          |
+   |          |
+   +----------+
+----
+
+[ditaa]
+----
+ +-+
+ |I|<----------------------------------------+
+ +++                                         | XYZ1: Debugging purpose only
+  |Bootstrap:
+  |  brew
+  |  git
+  |  emacs
+  |  jq
+  |  bash-5.x
+  V
+ +++
+ | |<----------------------------------------+
+ +++                                         | XYZ2: Debugging purpose only
+  |
+  |Base:
+  |  intellij-idea
+  |  goland
+  |  orbstak
+  |  docker
+  |
+  V
+ +----+
+ |BASE|<----------------------+
+ +-+--+                       |rebase:by uninstalling anything but installed by bootstrap and Base:
+   |                          |rebase:by uninstalling known ones.
+   V                          |
++--*-------------------+      |
+|   Project:           |      |
+|  |   mysql           |      |
+|  |   goenv           |      |
+|  |   go              |      |
+|  |   make            |      |
+|  |   sed             |      |
+|  |   fintutils       |      |
+|  |   coreutils       |      |
+|  |   grep            |      |
+|  |   ...             |      |
+|  |   .bashrc (config)|      |
+|  |   etc.            |      |
+|  |                   |      |
+|  V                   |      |
+| +-------+            |      |
+| |PROJECT|            +------+
+| ++------+            |
+|  |Private:           |
+|  |  .bashrc (config) |
+|  |    functions      |
+|  |    aliases        |
+|  |    prompt         |
+|  |  npm              |
+|  |    ajv-cli        |
+|  |    yamljson       |
+|  |                   |
+|  V                   |
+| ++------+            |
+| |       |            |
+| ++------+            |
++----------------------+
+----
